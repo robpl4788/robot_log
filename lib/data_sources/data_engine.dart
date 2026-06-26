@@ -28,7 +28,6 @@ class DataEngine {
   }
 
   void addData(HashMap<String, List<TimeStampedDouble>> newData) {
-    print("new data in engine yay");
     bool newKeys = false;
     for (var key in newData.keys) {
       // If the key doesn't exist in the current data, initialize it with an empty list
@@ -41,7 +40,6 @@ class DataEngine {
     }
 
     dataStreamController.add(data);
-    print("new data sent yay");
 
     if (newKeys) {
       keyStreamController.add(data.keys.toList());

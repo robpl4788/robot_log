@@ -6,6 +6,7 @@ import 'package:silvanus/data_sources/data_engine.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:silvanus/data_sources/no_source.dart';
 import 'package:silvanus/data_sources/csv_source.dart';
+import 'package:silvanus/data_sources/serial_json_source.dart';
 
 class SourceSelector extends StatefulWidget{
 
@@ -43,6 +44,14 @@ class SourceSelectorState extends State<SourceSelector> {
           newEngine = DataEngine(source: NoSource());
         }
         break;
+      case SourceOptionSerialJson():
+        String? serialPortName = selected.serialPortName;
+        if (serialPortName == null) {
+          newEngine = DataEngine(source: NoSource());
+        } else {
+          newEngine = DataEngine(source: SerialJsonSource(SerialPort(serialPortName)));
+        }
+        break;
       // case SourceOptionSerial():
       //   String? serialPortName = selected.serialPortName;
       //   if (serialPortName == null) {
@@ -67,6 +76,7 @@ class SourceSelectorState extends State<SourceSelector> {
             dropdownMenuEntries:  [
               // DropdownMenuEntry(value: SourceOptionRandom(), label: SourceOptionRandom().label),
               // DropdownMenuEntry(value: SourceOptionSerial(), label: SourceOptionSerial().label),
+              DropdownMenuEntry(value: SourceOptionSerialJson(), label: SourceOptionSerialJson().label),
               DropdownMenuEntry(value: SourceOptionCSV(), label: SourceOptionCSV().label) ,
               DropdownMenuEntry(value: SourceOptionNone(), label: SourceOptionNone().label), ] ,
             onSelected: (dynamic value) {
@@ -74,7 +84,7 @@ class SourceSelectorState extends State<SourceSelector> {
                 selectOption(value);
               }
             }),
-            // if (currentSourceOption.label == SourceOptionSerial().label) serialPortMenu(),
+            if (currentSourceOption.label == SourceOptionSerialJson().label) serialPortMenu(),
             ]);
   }
 
@@ -126,6 +136,11 @@ class SourceOptionCSV extends SourceOption {
 // class SourceOptionSerial extends SourceOption {
 //   SourceOptionSerial() : super("Serial");
 // }
+
+class SourceOptionSerialJson extends SourceOption {
+  SourceOptionSerialJson() : super("Serial JSON");
+}
+
 
 class SourceOptionNone extends SourceOption {
   SourceOptionNone() : super("None");
