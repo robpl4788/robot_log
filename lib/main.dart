@@ -1,15 +1,14 @@
 // The original content is temporarily commented out to allow generating a self-contained demo - feel free to uncomment later.
 
 // import 'package:flutter/material.dart';
-import 'package:silvanus/src/rust/api/api.dart';
 import 'package:silvanus/widgets/analysis_tab.dart';
 
 import 'package:flutter/material.dart';
-import 'package:silvanus/src/rust/frb_generated.dart';
 import 'package:silvanus/widgets/source_select.dart';
+import "package:silvanus/data_sources/data_engine.dart";
+import "package:silvanus/data_sources/no_source.dart";
 
 Future<void> main() async {
-  await RustLib.init();
   // await Engine.engine.begin();
   runApp(const MyApp());
 }
@@ -22,21 +21,14 @@ const MyApp({super.key});
 }
 
 class _MyAppState extends State<MyApp> {
-  ArcEngine? _engine;
+  DataEngine? _engine;
 
   @override
   void initState() {
     super.initState();
-    _initEngine();
+    _engine =_engine ?? DataEngine(source: NoSource());
   }
 
-  Future<void> _initEngine() async {
-    final initialEngine = await loadTest();
-    setState(() {
-      _engine = initialEngine;
-    });
-
-  }
 
 
   @override
@@ -63,10 +55,10 @@ class _MyAppState extends State<MyApp> {
               child: AnalysisTab(engine: engine,  key: ValueKey(_engine!.hashCode),
             ),
             ),
-            SourceSelector(onSelectionChanged: (Future<ArcEngine> engineFuture) async { 
-              terminate(engine: engine);
+            SourceSelector(onSelectionChanged: (DataEngine newEngine) { 
+              engine.dispose();
 
-              ArcEngine currentEngine = await engineFuture;
+              DataEngine currentEngine = newEngine;
 
               setState(() {
               _engine = currentEngine;

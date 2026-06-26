@@ -2,13 +2,14 @@
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
-import 'package:silvanus/src/rust/api/api.dart';
+import 'package:silvanus/data_sources/data_engine.dart';
 import 'package:file_picker/file_picker.dart';
-
+import 'package:silvanus/data_sources/no_source.dart';
+import 'package:silvanus/data_sources/csv_source.dart';
 
 class SourceSelector extends StatefulWidget{
 
-  final Future<void> Function(Future<ArcEngine>) onSelectionChanged;
+  final void Function(DataEngine) onSelectionChanged;
 
   const SourceSelector({super.key, required this.onSelectionChanged});
   
@@ -30,42 +31,42 @@ class SourceSelectorState extends State<SourceSelector> {
       currentSourceOption = selected;
     });
     
-    Future<ArcEngine> newEngineFuture;
+    DataEngine newEngine;
     // Initialise a new engine based on the selected option
     switch (selected) {
-      case SourceOptionRandom():
-        newEngineFuture =  loadTest();
-        break;
       case SourceOptionCSV():
         FilePickerResult? result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['csv'], allowMultiple: false);
-        if (result != null) {
-          newEngineFuture = loadCsv(csvPath: result.files.single.path!);
+        String? path = result?.files.single.path;
+        if (path != null) {
+          newEngine = DataEngine(source: CSVSource(path));
         } else {
-          newEngineFuture = loadNone();
+          newEngine = DataEngine(source: NoSource());
         }
         break;
-      case SourceOptionSerial():
-        String? serialPortName = selected.serialPortName;
-        if (serialPortName == null) {
-          newEngineFuture = loadNone();
-        } else {
-          newEngineFuture = loadSerial(port: serialPortName);
-        }
-        break;
+      // case SourceOptionSerial():
+      //   String? serialPortName = selected.serialPortName;
+      //   if (serialPortName == null) {
+      //     newEngineFuture = loadNone();
+      //   } else {
+      //     newEngineFuture = loadSerial(port: serialPortName);
+      //   }
+      //   break;
       case SourceOptionNone():
-        newEngineFuture = loadNone();
+          newEngine = DataEngine(source: NoSource());
         break;
     }
 
-    widget.onSelectionChanged(newEngineFuture);
+    newEngine.start();
+
+    widget.onSelectionChanged(newEngine);
   }
 
   @override
   Widget build(BuildContext context) {
     return Row( children: [DropdownMenu(
             dropdownMenuEntries:  [
-              DropdownMenuEntry(value: SourceOptionRandom(), label: SourceOptionRandom().label),
-              DropdownMenuEntry(value: SourceOptionSerial(), label: SourceOptionSerial().label),
+              // DropdownMenuEntry(value: SourceOptionRandom(), label: SourceOptionRandom().label),
+              // DropdownMenuEntry(value: SourceOptionSerial(), label: SourceOptionSerial().label),
               DropdownMenuEntry(value: SourceOptionCSV(), label: SourceOptionCSV().label) ,
               DropdownMenuEntry(value: SourceOptionNone(), label: SourceOptionNone().label), ] ,
             onSelected: (dynamic value) {
@@ -73,7 +74,7 @@ class SourceSelectorState extends State<SourceSelector> {
                 selectOption(value);
               }
             }),
-            if (currentSourceOption.label == SourceOptionSerial().label) serialPortMenu(),
+            // if (currentSourceOption.label == SourceOptionSerial().label) serialPortMenu(),
             ]);
   }
 
@@ -114,17 +115,17 @@ sealed class SourceOption {
 
 }
 
-class SourceOptionRandom extends SourceOption {
-  SourceOptionRandom() : super("Random");
-}
+// class SourceOptionRandom extends SourceOption {
+//   SourceOptionRandom() : super("Random");
+// }
 
 class SourceOptionCSV extends SourceOption {
   SourceOptionCSV() : super("CSV");
 }
 
-class SourceOptionSerial extends SourceOption {
-  SourceOptionSerial() : super("Serial");
-}
+// class SourceOptionSerial extends SourceOption {
+//   SourceOptionSerial() : super("Serial");
+// }
 
 class SourceOptionNone extends SourceOption {
   SourceOptionNone() : super("None");

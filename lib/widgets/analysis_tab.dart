@@ -1,13 +1,14 @@
 
 import 'package:flutter/material.dart';
-import 'package:silvanus/src/rust/api/api.dart';
 import 'package:silvanus/types/series_request.dart';
 import 'package:silvanus/widgets/charts/line.dart';
 import 'package:silvanus/widgets/key_selector.dart';
 import 'package:silvanus/widgets/source_select.dart';
 
+import 'package:silvanus/data_sources/data_engine.dart';
+
 class AnalysisTab extends StatefulWidget{
-  final ArcEngine engine;
+  final DataEngine engine;
   const AnalysisTab({super.key, required this.engine});
 
   @override

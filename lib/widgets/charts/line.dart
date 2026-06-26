@@ -4,14 +4,15 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:silvanus/src/rust/api/api.dart';
-import 'package:silvanus/src/rust/api/types.dart';
 import 'package:silvanus/types/series_request.dart';
+import 'package:silvanus/types/time_stamped_value.dart';
+import 'package:silvanus/data_sources/data_engine.dart';
+
 
 class Line extends StatefulWidget {
   final SeriesGroupRequest seriesToShow;
 
-  final ArcEngine engine;
+  final DataEngine engine;
 
   // Map of keys to series
   final Map<String, Series> seriesMap = {};
@@ -81,23 +82,27 @@ class _LineState extends State<Line> {
   // Subscripe to series
   void _subscribeToSeries(SeriesRequest seriesRequested) {
     // Points to plot
-    List<FlSpot> newSpots = [];
+    List<TimeStampedDouble> startingData = widget.engine.getSeries(seriesRequested.name);
+    List<FlSpot> newSpots = startingData.map((p) => FlSpot(p.timestamp, p.value)).toList();
+
+    widget.seriesMap[seriesRequested.getKey()]?.setSpots(newSpots);
+    zoomManager.addTimeMeasurement(startingData);
+    
 
     
     // Subscription to stream
-    final sub = getTimestampedSeries(key: seriesRequested.getKey(), engine: widget.engine)
-        .listen((pointsFromRust) {
+    final sub = widget.engine.dataStream.listen((newData) {
         // when new points are available
         setState(() {
           // Update the graph with the new points
-          newSpots =  pointsFromRust
-              .map((p) => FlSpot(p.time, p.value))
-              .toList();
+          newSpots =  newData[seriesRequested.name]
+              ?.map((p) => FlSpot(p.timestamp, p.value))
+              .toList() ?? [];
           widget.seriesMap[seriesRequested.getKey()]?.setSpots(newSpots);
         });
 
         // Add the new time options into the zoom manager
-        zoomManager.addTimeMeasurement(pointsFromRust);
+        zoomManager.addTimeMeasurement(newData[seriesRequested.name] ?? []);
 
 
       });
@@ -239,25 +244,25 @@ class ZoomManager {
   }
 
   // Add a set of new time measurements to update total range
-  void addTimeMeasurement(List<TimeStampedValue> newTimes) {
+  void addTimeMeasurement(List<TimeStampedDouble> newTimes) {
     // For each specific value
     for (TimeStampedValue value in newTimes) {
       // If this is the first value ever it's the min and max
       if (hasAnyTime == false) {
-        minTime = value.time;
-        maxTime = value.time;
+        minTime = value.timestamp;
+        maxTime = value.timestamp;
         hasAnyTime = true;
       }
 
       // If it's a new min value
-      else if (value.time < minTime) {
+      else if (value.timestamp < minTime) {
         
-        minTime = value.time;
+        minTime = value.timestamp;
         
       
       // If it's a new max value
-      } else if (value.time > maxTime) {
-        maxTime = value.time;
+      } else if (value.timestamp > maxTime) {
+        maxTime = value.timestamp;
       }
     }
 

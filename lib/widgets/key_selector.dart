@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:silvanus/src/rust/api/api.dart';
+import 'package:silvanus/data_sources/data_engine.dart';
 import 'package:silvanus/types/color_option.dart';
 import 'package:silvanus/types/series_request.dart';
 
 class KeySelector extends StatefulWidget{
-  final ArcEngine engine;
+  final DataEngine engine;
 
 
   final void Function(SeriesGroupRequest selected) onSelectionChanged;
@@ -25,10 +25,11 @@ class KeySelectorState extends State<KeySelector> {
   @override
   void initState() {
     super.initState();
+    options.addFreshKeys(widget.engine.getAvailableKeys());
 
     
     // If new keys are available update the options to be selected
-    _keySub = getAvailableKeys(engine: widget.engine).listen((keys){
+    _keySub = widget.engine.keyStream.listen((keys){
       setState(() {
         options.addFreshKeys(keys);
       });
