@@ -9,10 +9,10 @@ import 'package:csv/csv.dart';
 class CSVSource extends DataSource {
   final String filePath;
 
-  final StreamController<HashMap<String, List<TimeStampedDouble>>> _controller = StreamController<HashMap<String, List<TimeStampedDouble>>>.broadcast();
+  final StreamController<HashMap<String, List<TimeStampedDouble>>> _newDataStreamController = StreamController<HashMap<String, List<TimeStampedDouble>>>.broadcast();
 
   @override
-  Stream<HashMap<String, List<TimeStampedDouble>>> get newDataStream => _controller.stream;
+  Stream<HashMap<String, List<TimeStampedDouble>>> get newDataStream => _newDataStreamController.stream;
 
   @override
   void start() {
@@ -35,12 +35,12 @@ class CSVSource extends DataSource {
       }
     }
 
-    _controller.add(newData);
+    _newDataStreamController.add(newData);
   }
 
   @override
   void dispose() {
-    _controller.close();
+    _newDataStreamController.close();
   }
 
   CSVSource(this.filePath);

@@ -10,34 +10,44 @@ import 'dart:convert';
 class SerialJsonSource extends DataSource {
   final SerialPort serialPort;
 
-  final StreamController<HashMap<String, List<TimeStampedDouble>>> _controller = StreamController<HashMap<String, List<TimeStampedDouble>>>.broadcast();
+  final StreamController<HashMap<String, List<TimeStampedDouble>>> _newDataStreamController = StreamController<HashMap<String, List<TimeStampedDouble>>>.broadcast();
+
+  Timer? _reconnectTimer;
+
+  bool _disposed = false;
+
 
   int startTime = 0;
 
   @override
-  Stream<HashMap<String, List<TimeStampedDouble>>> get newDataStream => _controller.stream;
+  Stream<HashMap<String, List<TimeStampedDouble>>> get newDataStream => _newDataStreamController.stream;
 
   @override
   void start() {
-    print(serialPort.manufacturer);
-    print(serialPort.description);
-    print(serialPort.productName);
-    print(serialPort.productId);
-    print(serialPort.vendorId);
-    print("ready to read");
+    // print(serialPort.manufacturer);
+    // print(serialPort.description);
+    // print(serialPort.productName);
+    // print(serialPort.productId);
+    // print(serialPort.vendorId);
+    // print("ready to read");
     if (!serialPort.openReadWrite()) {
       print(SerialPort.lastError);
+      print("Serial port = :(");
     }
 
 
 
-    print("open");
+    // print("open");
+    if (startTime == 0) {
+      startTime = DateTime.now().millisecondsSinceEpoch;
+    } else {
 
-    startTime = DateTime.now().millisecondsSinceEpoch;
+    }
 
 
     final reader = SerialPortReader(serialPort);
     reader.stream.listen((data) {
+
       final cleanData = data.where((byte) => byte !=  0).toList();
 
       String jsonString = String.fromCharCodes(cleanData).trim();
@@ -46,7 +56,7 @@ class SerialJsonSource extends DataSource {
 
         int timeInt = DateTime.now().millisecondsSinceEpoch - startTime;
 
-        double time = timeInt.toDouble();
+        double time = timeInt.toDouble() / 1000.0;
 
         HashMap<String, List<TimeStampedDouble>> newData = HashMap();
 
@@ -58,11 +68,41 @@ class SerialJsonSource extends DataSource {
           (newData[entry.key] ??= []).add(value);
         }
 
-        _controller.add(newData);
+        if (_newDataStreamController.isClosed == false) {
+          _newDataStreamController.add(newData);
+        }
       } 
 
 
       // print(jsonString);
+    }, 
+    onError: (error) {
+    // This intercepts the SerialPortError when the cable is pulled!
+    // print('Serial connection lost!');
+    serialPort.close();
+    _autoReconnect();
+  },);
+  }
+
+  void _autoReconnect() {
+    _reconnectTimer?.cancel();
+
+    _reconnectTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (_disposed) {
+        timer.cancel();
+        return;
+      }
+      
+      final availablePorts = SerialPort.availablePorts;
+      // print(availablePorts);
+      for (String portName in availablePorts) {
+        if (portName == serialPort.name) {
+          timer.cancel();
+          start();
+          
+        }
+      }
+
     });
   }
 
@@ -84,18 +124,22 @@ class SerialJsonSource extends DataSource {
 
       return stats;
     } catch (e) {
-      print('JSON parse error: $e');
-      print("bad string");
-      print(jsonString);
-      print("bad string end");
-      print(jsonString.codeUnits);
+      // print('JSON parse error: $e');
+      // print("bad string");
+      // print(jsonString);
+      // print("bad string end");
+      // print(jsonString.codeUnits);
       rethrow;
     }
   }
 
   @override
   void dispose() {
-    _controller.close();
+    _disposed = true;
+
+
+    _reconnectTimer?.cancel();
+    _newDataStreamController.close();
     serialPort.close();
     serialPort.dispose();
     print("delete serial port");
