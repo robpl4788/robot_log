@@ -30,6 +30,9 @@ class SerialJsonSource extends DataSource {
     // print(serialPort.productId);
     // print(serialPort.vendorId);
     // print("ready to read");
+
+    serialPort.config.baudRate = 115200;
+
     if (!serialPort.openReadWrite()) {
       print(SerialPort.lastError);
       print("Serial port = :(");
@@ -51,6 +54,8 @@ class SerialJsonSource extends DataSource {
       final cleanData = data.where((byte) => byte !=  0).toList();
 
       String jsonString = String.fromCharCodes(cleanData).trim();
+
+      // print(jsonString);
 
       if (jsonString.startsWith("{") && jsonString.endsWith("}")) {
 
